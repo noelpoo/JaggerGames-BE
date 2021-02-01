@@ -58,11 +58,11 @@ class Question(Resource):
             _question = question[0]
             difficulty = question[1]
             qn_type = question[2]
-            choice_1 = question[3] if not math.isnan(question[3]) else None
-            choice_2 = question[4] if not math.isnan(question[4]) else None
-            choice_3 = question[5] if not math.isnan(question[5]) else None
-            choice_4 = question[6] if not math.isnan(question[6]) else None
-            correct = question[7]
+            choice_1 = str(round(question[3])) if not math.isnan(question[3]) else None
+            choice_2 = str(round(question[4])) if not math.isnan(question[4]) else None
+            choice_3 = str(round(question[5])) if not math.isnan(question[5]) else None
+            choice_4 = str(round(question[6])) if not math.isnan(question[6]) else None
+            correct = str(question[7])
             hint = question[8] if isinstance(question[8], str) else None
             obj = {
                 "uuid": _uuid,
