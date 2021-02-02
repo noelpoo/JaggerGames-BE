@@ -8,19 +8,25 @@ from flask_restful import Resource, Api, reqparse
 from flask_cors import CORS, cross_origin
 from flask_jwt_extended import JWTManager
 
-API_VERSION = 'v1'
-API_PATH = '/api/{}'.format(API_VERSION)
+from common import API_PATH, APP_SECRET_KEY
+
+
 app = Flask(__name__)
-app.secret_key = "JAGGER"
+app.secret_key = APP_SECRET_KEY
 api = Api(app)
 app.config['CORS_HEADERS'] = 'Content-Type'
 cors = CORS(app, resources={r"/*": {"origins": "*"}})
 jwt = JWTManager(app)
 
-
+# IN-MEMORY DATABASE
+# TODO - MIGRATE TO NON-SQL DB
 question_db = []
 
 
+# END-POINT FOR GETTING FULL LIST
+# TODO - CREATE FILTER BY TYPE AND DIFFICULTY
+# TODO - CREATE SORTING BY TIME/DIFFICULTY/TYPE
+# TODO - CREATE FETCHING BY COUNT
 class Questions(Resource):
 
     @cross_origin(origin='*', headers=['Content-Type', 'Authorization'])
@@ -31,6 +37,7 @@ class Questions(Resource):
         }, 200
 
 
+# END-POINT FOR HANDLING IND/BATCH QUESTIONS
 class Question(Resource):
 
     @cross_origin(origin='*', headers=['Content-Type', 'Authorization'])
@@ -84,6 +91,9 @@ class Question(Resource):
             "count": len(uuid_list)
         }
         return response, 201
+
+# TODO - CREATE DELETE ENDPOINT USING UUID
+# TODO - CREATE QUESTION-FEEDS API
 
 
 api.add_resource(Question, '{}/question'.format(API_PATH))
