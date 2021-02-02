@@ -52,47 +52,60 @@ class Question(Resource):
             return {'message': "missing query parameters"}, 400
 
     @cross_origin(origin='*', headers=['Content-Type', 'Authorization'])
+    def delete(self):
+        global question_db
+        parser = reqparse.RequestParser()
+        parser.add_argument('uuid', type=str, required=True)
+        _uuid = parser.parse_args().get('uuid')
+        if _uuid:
+            question_db = list(filter(lambda x: x['uuid'] != _uuid, question_db))
+            return {'questions': question_db, "count": len(question_db)}, 200
+        else:
+            return {'message': "missing parameters"}, 400
+
+    @cross_origin(origin='*', headers=['Content-Type', 'Authorization'])
     def post(self):
         request_data = request.get_json(force=True)
         download_url = request_data['url']
+        try:
+            df = pd.read_csv(download_url)
+            uuid_list = []
+            questions = df.iterrows()
 
-        df = pd.read_csv(download_url)
-        uuid_list = []
-        questions = df.iterrows()
-
-        for index, question in questions:
-            _uuid = str(uuid.uuid4())
-            _question = question[0]
-            difficulty = question[1]
-            qn_type = question[2]
-            choice_1 = str(round(question[3])) if not math.isnan(question[3]) else None
-            choice_2 = str(round(question[4])) if not math.isnan(question[4]) else None
-            choice_3 = str(round(question[5])) if not math.isnan(question[5]) else None
-            choice_4 = str(round(question[6])) if not math.isnan(question[6]) else None
-            correct = str(question[7])
-            hint = question[8] if isinstance(question[8], str) else None
-            obj = {
-                "uuid": _uuid,
-                "question": _question,
-                "difficult": difficulty,
-                "type": qn_type,
-                "c1": choice_1,
-                'c2': choice_2,
-                'c3': choice_3,
-                'c4': choice_4,
-                'correct': correct,
-                'hint': hint,
-                'create_time': round(time.time())
+            for index, question in questions:
+                _uuid = str(uuid.uuid4())
+                _question = question[0]
+                difficulty = question[1]
+                qn_type = question[2]
+                choice_1 = str(round(question[3])) if not math.isnan(question[3]) else None
+                choice_2 = str(round(question[4])) if not math.isnan(question[4]) else None
+                choice_3 = str(round(question[5])) if not math.isnan(question[5]) else None
+                choice_4 = str(round(question[6])) if not math.isnan(question[6]) else None
+                correct = str(question[7])
+                hint = question[8] if isinstance(question[8], str) else None
+                obj = {
+                    "uuid": _uuid,
+                    "question": _question,
+                    "difficult": difficulty,
+                    "type": qn_type,
+                    "c1": choice_1,
+                    'c2': choice_2,
+                    'c3': choice_3,
+                    'c4': choice_4,
+                    'correct': correct,
+                    'hint': hint,
+                    'create_time': round(time.time())
+                }
+                uuid_list.append(_uuid)
+                question_db.append(obj)
+            response = {
+                "UUIDs": uuid_list,
+                "count": len(uuid_list)
             }
-            uuid_list.append(_uuid)
-            question_db.append(obj)
-        response = {
-            "UUIDs": uuid_list,
-            "count": len(uuid_list)
-        }
-        return response, 201
+            return response, 201
+        except TypeError:
+            return {"message": "failed to parse CSV, please make sure CSV format is correct"}, 400
 
-# TODO - CREATE DELETE ENDPOINT USING UUID
 # TODO - CREATE QUESTION-FEEDS API
 
 
