@@ -27,6 +27,10 @@ question_db = []
 # TODO - CREATE FILTER BY TYPE AND DIFFICULTY
 # TODO - CREATE SORTING BY TIME/DIFFICULTY/TYPE
 # TODO - CREATE FETCHING BY COUNT
+# TODO - "correct" field to accept string or array (for MMCQ)
+# TODO - more enum for MMCQ question type
+
+# TODO - end point for storing question's result based of session or login ID.
 class Questions(Resource):
 
     @cross_origin(origin='*', headers=['Content-Type', 'Authorization'])
