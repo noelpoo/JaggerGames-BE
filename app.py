@@ -8,7 +8,7 @@ from flask_restful import Resource, Api, reqparse
 from flask_cors import CORS, cross_origin
 from flask_jwt_extended import JWTManager
 
-from common import API_PATH, APP_SECRET_KEY
+from common import *
 
 
 app = Flask(__name__)
@@ -87,6 +87,9 @@ class Question(Resource):
                 choice_4 = str(round(question[6])) if not math.isnan(question[6]) else None
                 correct = str(question[7])
                 hint = question[8] if isinstance(question[8], str) else None
+                time_limit = question[9] if not math.isnan(question[9]) else None
+                if not time_limit:
+                    time_limit = create_time_limit(diff=difficulty, qn_type=qn_type, qn=_question)
                 obj = {
                     "uuid": _uuid,
                     "question": _question,
@@ -98,7 +101,8 @@ class Question(Resource):
                     'c4': choice_4,
                     'correct': correct,
                     'hint': hint,
-                    'create_time': round(time.time())
+                    'create_time': round(time.time()),
+                    'time_limit': round(time_limit)
                 }
                 uuid_list.append(_uuid)
                 question_db.append(obj)
@@ -110,7 +114,17 @@ class Question(Resource):
         except TypeError:
             return {"message": "failed to parse CSV, please make sure CSV format is correct"}, 400
 
+
 # TODO - CREATE QUESTION-FEEDS API
+
+def create_time_limit(diff, qn_type, qn):
+    base = MIN_TIME_LIMIT
+    diff_pt = DIFF_WEIGHT * diff * base
+    type_pt = TYPE_WEIGHT * qn_type * base
+    qn_pt = 0
+    if len(qn) > 10:
+        qn_pt = (len(qn) - 10) * LEN_WEIGHT
+    return round(base + diff_pt + type_pt + qn_pt)
 
 
 api.add_resource(Question, '{}/question'.format(API_PATH))
@@ -119,4 +133,4 @@ api.add_resource(Questions, '{}/questions'.format(API_PATH))
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
-    app.run(host='0.0.0.0', port=port, debug=True)
+    app.run(host='0.0.0.0', port=port, debug=DEBUG)
