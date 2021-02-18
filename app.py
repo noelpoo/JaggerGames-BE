@@ -21,6 +21,7 @@ jwt = JWTManager(app)
 # IN-MEMORY DATABASE
 # TODO - MIGRATE TO NON-SQL DB
 question_db = []
+answer_db = []
 
 
 # END-POINT FOR GETTING FULL LIST
@@ -30,7 +31,65 @@ question_db = []
 # TODO - "correct" field to accept string or array (for MMCQ)
 # TODO - more enum for MMCQ question type
 
+
 # TODO - end point for storing question's result based of session or login ID.
+class Answers(Resource):
+    @cross_origin(origin='*', headers=['Content-Type', 'Authorization'])
+    def get(self):
+        parser = reqparse.RequestParser()
+        parser.add_argument('device_id', type=str, required=False)
+        parser.add_argument('session_id', type=str, required=False)
+        device_id = parser.parse_args().get('device_id')
+        session_id = parser.parse_args().get('session_id')
+        batch = []
+        if device_id and session_id:
+            for answer in answer_db:
+                if answer['device_id'] == device_id and answer['session_id'] == session_id:
+                    batch.append(answer)
+        elif device_id and not session_id:
+            for answer in answer_db:
+                if answer['device_id'] == device_id:
+                    batch.append(answer)
+        elif not device_id and session_id:
+            for answer in answer_db:
+                if answer['session_id'] == session_id:
+                    batch.append(answer)
+        elif not device_id and not session_id:
+            for answer in answer_db:
+                batch.append(answer)
+
+        if batch:
+            return {
+                "count": len(batch),
+                "answers": batch
+            }, 200
+        else:
+            return {
+                'message': 'no answer with matching device_id or session_id'
+            }, 404
+
+
+class Answer(Resource):
+    @cross_origin(origin='*', headers=['Content-Type', 'Authorization'])
+    def post(self):
+        data = request.get_json(force=True)
+        answer_id = str(uuid.uuid4())
+        obj = {
+            'answer_id': answer_id,
+            'questions': data['question'],
+            'answer': data['answer'],
+            'is_correct': data['is_correct'],
+            'score': data['score'],
+            'answered_in': data['answered_in'],
+            'answered_time': round(time.time()),
+            'session_id': data['player']['session_id'],
+            'device_id': data['player']['device_id']
+        }
+        answer_db.append(obj)
+        print(obj)
+        return obj, 201 if obj else 403
+
+
 class Questions(Resource):
 
     @cross_origin(origin='*', headers=['Content-Type', 'Authorization'])
@@ -127,6 +186,8 @@ def create_time_limit(diff, qn_type, qn):
 
 api.add_resource(Question, '{}/question'.format(API_PATH))
 api.add_resource(Questions, '{}/questions'.format(API_PATH))
+api.add_resource(Answer, '{}/answer'.format(API_PATH))
+api.add_resource(Answers, '{}/answers'.format(API_PATH))
 
 
 if __name__ == "__main__":
