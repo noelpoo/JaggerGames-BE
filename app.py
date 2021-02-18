@@ -87,9 +87,7 @@ class Question(Resource):
                 choice_4 = str(round(question[6])) if not math.isnan(question[6]) else None
                 correct = str(question[7])
                 hint = question[8] if isinstance(question[8], str) else None
-                time_limit = question[9] if not math.isnan(question[9]) else None
-                if not time_limit:
-                    time_limit = create_time_limit(diff=difficulty, qn_type=qn_type, qn=_question)
+                time_limit = question[9] if not math.isnan(question[9]) else create_time_limit(diff=difficulty, qn_type=qn_type, qn=_question)
                 obj = {
                     "uuid": _uuid,
                     "question": _question,
