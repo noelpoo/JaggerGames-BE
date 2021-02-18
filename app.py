@@ -24,7 +24,6 @@ question_db = []
 answer_db = []
 
 
-# END-POINT FOR GETTING FULL LIST
 # TODO - CREATE FILTER BY TYPE AND DIFFICULTY
 # TODO - CREATE SORTING BY TIME/DIFFICULTY/TYPE
 # TODO - CREATE FETCHING BY COUNT
@@ -32,7 +31,7 @@ answer_db = []
 # TODO - more enum for MMCQ question type
 
 
-# TODO - end point for storing question's result based of session or login ID.
+# END-POINT FOR GETTING FULL LIST
 class Answers(Resource):
     @cross_origin(origin='*', headers=['Content-Type', 'Authorization'])
     def get(self):
@@ -88,6 +87,33 @@ class Answer(Resource):
         answer_db.append(obj)
         print(obj)
         return obj, 201 if obj else 403
+
+    @cross_origin(origin='*', headers=['Content-Type', 'Authorization'])
+    def get(self):
+        parser = reqparse.RequestParser()
+        parser.add_argument('answer_id', type=str, required=True)
+        answer_id = parser.parse_args().get('answer_id')
+        if answer_id:
+            answer = next(filter(lambda x: x['answer_id'] == answer_id, answer_db), None)
+            return {'answer': answer}, 200 if answer else 404
+        else:
+            return {'message': 'missing query param'}, 400
+
+    @cross_origin(origin='*', headers=['Content-Type', 'Authorization'])
+    def delete(self):
+        parser = reqparse.RequestParser()
+        parser.add_argument('answer_id', type=str, required=True)
+        answer_id = parser.parse_args().get('answer_id')
+        has_delete = False
+        if answer_id:
+            for answer in answer_db:
+                if answer['answer_id'] == answer_id:
+                    answer_db.remove(answer)
+                    has_delete = True
+        if has_delete:
+            return {'message': 'succesfully deleted {}'.format(answer_id)}, 200
+        else:
+            return {'message': 'failed to find answer {}'.format(answer_id)}, 404
 
 
 class Questions(Resource):
@@ -193,3 +219,4 @@ api.add_resource(Answers, '{}/answers'.format(API_PATH))
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
     app.run(host='0.0.0.0', port=port, debug=DEBUG)
+
