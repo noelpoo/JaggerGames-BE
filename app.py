@@ -21,16 +21,101 @@ jwt = JWTManager(app)
 # IN-MEMORY DATABASE
 # TODO - MIGRATE TO NON-SQL DB
 question_db = []
+answer_db = []
 
 
-# END-POINT FOR GETTING FULL LIST
 # TODO - CREATE FILTER BY TYPE AND DIFFICULTY
 # TODO - CREATE SORTING BY TIME/DIFFICULTY/TYPE
 # TODO - CREATE FETCHING BY COUNT
 # TODO - "correct" field to accept string or array (for MMCQ)
 # TODO - more enum for MMCQ question type
 
-# TODO - end point for storing question's result based of session or login ID.
+
+# END-POINT FOR GETTING FULL LIST
+class Answers(Resource):
+    @cross_origin(origin='*', headers=['Content-Type', 'Authorization'])
+    def get(self):
+        parser = reqparse.RequestParser()
+        parser.add_argument('device_id', type=str, required=False)
+        parser.add_argument('session_id', type=str, required=False)
+        device_id = parser.parse_args().get('device_id')
+        session_id = parser.parse_args().get('session_id')
+        batch = []
+        if device_id and session_id:
+            for answer in answer_db:
+                if answer['device_id'] == device_id and answer['session_id'] == session_id:
+                    batch.append(answer)
+        elif device_id and not session_id:
+            for answer in answer_db:
+                if answer['device_id'] == device_id:
+                    batch.append(answer)
+        elif not device_id and session_id:
+            for answer in answer_db:
+                if answer['session_id'] == session_id:
+                    batch.append(answer)
+        elif not device_id and not session_id:
+            for answer in answer_db:
+                batch.append(answer)
+
+        if batch:
+            return {
+                "count": len(batch),
+                "answers": batch
+            }, 200
+        else:
+            return {
+                'message': 'no answer with matching device_id or session_id'
+            }, 404
+
+
+class Answer(Resource):
+    @cross_origin(origin='*', headers=['Content-Type', 'Authorization'])
+    def post(self):
+        data = request.get_json(force=True)
+        answer_id = str(uuid.uuid4())
+        obj = {
+            'answer_id': answer_id,
+            'questions': data['question'],
+            'answer': data['answer'],
+            'is_correct': data['is_correct'],
+            'score': data['score'],
+            'answered_in': data['answered_in'],
+            'answered_time': round(time.time()),
+            'session_id': data['player']['session_id'],
+            'device_id': data['player']['device_id']
+        }
+        answer_db.append(obj)
+        print(obj)
+        return obj, 201 if obj else 403
+
+    @cross_origin(origin='*', headers=['Content-Type', 'Authorization'])
+    def get(self):
+        parser = reqparse.RequestParser()
+        parser.add_argument('answer_id', type=str, required=True)
+        answer_id = parser.parse_args().get('answer_id')
+        if answer_id:
+            answer = next(filter(lambda x: x['answer_id'] == answer_id, answer_db), None)
+            return {'answer': answer}, 200 if answer else 404
+        else:
+            return {'message': 'missing query param'}, 400
+
+    @cross_origin(origin='*', headers=['Content-Type', 'Authorization'])
+    def delete(self):
+        parser = reqparse.RequestParser()
+        parser.add_argument('answer_id', type=str, required=True)
+        answer_id = parser.parse_args().get('answer_id')
+        has_delete = False
+        if answer_id:
+            for answer in answer_db:
+                if answer['answer_id'] == answer_id:
+                    answer_db.remove(answer)
+                    has_delete = True
+        if has_delete:
+            return {'message': 'succesfully deleted {}'.format(answer_id)}, 200
+        else:
+            return {'message': 'failed to find answer {}'.format(answer_id)}, 404
+
+
 class Questions(Resource):
 
     @cross_origin(origin='*', headers=['Content-Type', 'Authorization'])
@@ -87,9 +172,7 @@ class Question(Resource):
                 choice_4 = str(round(question[6])) if not math.isnan(question[6]) else None
                 correct = str(question[7])
                 hint = question[8] if isinstance(question[8], str) else None
-                time_limit = question[9] if not math.isnan(question[9]) else None
-                if not time_limit:
-                    time_limit = create_time_limit(diff=difficulty, qn_type=qn_type, qn=_question)
+                time_limit = question[9] if not math.isnan(question[9]) else create_time_limit(diff=difficulty, qn_type=qn_type, qn=_question)
                 obj = {
                     "uuid": _uuid,
                     "question": _question,
@@ -129,8 +212,11 @@ def create_time_limit(diff, qn_type, qn):
 
 api.add_resource(Question, '{}/question'.format(API_PATH))
 api.add_resource(Questions, '{}/questions'.format(API_PATH))
+api.add_resource(Answer, '{}/answer'.format(API_PATH))
+api.add_resource(Answers, '{}/answers'.format(API_PATH))
 
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
     app.run(host='0.0.0.0', port=port, debug=DEBUG)
+
