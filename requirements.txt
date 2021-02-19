@@ -9,3 +9,5 @@ flasgger==0.9.5
 Flask-Cors==3.0.10
 Flask-JWT-Extended==3.25.0
 pandas==1.2.1
+firebase==3.0.1
+firebase-admin==4.5.2
