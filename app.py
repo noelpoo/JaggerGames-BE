@@ -13,6 +13,10 @@ from flask_jwt_extended import JWTManager
 
 from common import *
 
+# FIREBASE DB
+cred = credentials.Certificate(FIREBASE_KEY_PATH)
+firebase_admin.initialize_app(cred)
+db = firestore.client()
 
 app = Flask(__name__)
 app.secret_key = APP_SECRET_KEY
@@ -54,7 +58,10 @@ class Question(Resource):
         target_uuid = parser.parse_args().get('uuid')
         if target_uuid:
             question = next(filter(lambda x: x['uuid'] == target_uuid, question_db), None)
-            return {'question': question}, 200 if question is not None else 404
+            if question:
+                return {'question': question}, 200
+            else:
+                return {'message': 'question_uuid does not exist'}, 404
         else:
             return {'message': "missing query parameters"}, 400
 
@@ -107,6 +114,7 @@ class Question(Resource):
                 }
                 uuid_list.append(_uuid)
                 question_db.append(obj)
+                db.collection('questions').document(_uuid).set(obj)
             response = {
                 "UUIDs": uuid_list,
                 "count": len(uuid_list)
