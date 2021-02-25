@@ -25,10 +25,6 @@ app.config['CORS_HEADERS'] = 'Content-Type'
 cors = CORS(app, resources={r"/*": {"origins": "*"}})
 jwt = JWTManager(app)
 
-# IN-MEMORY DATABASE
-# TODO - MIGRATE TO NON-SQL DB
-question_db = []
-answer_db = []
 
 
 # TODO - CREATE FILTER BY TYPE AND DIFFICULTY
@@ -67,8 +63,6 @@ class Question(Resource):
         parser = reqparse.RequestParser()
         parser.add_argument('uuid', type=str, required=True)
         target_uuid = parser.parse_args().get('uuid')
-        # if target_uuid:
-        #     question = next(filter(lambda x: x['uuid'] == target_uuid, question_db), None)
         if target_uuid:
             doc_ref = db.collection(QUESTIONS_FB_DB).document(target_uuid)
             doc = doc_ref.get()
@@ -82,7 +76,6 @@ class Question(Resource):
 
     @cross_origin(origin='*', headers=['Content-Type', 'Authorization'])
     def delete(self):
-        global question_db
         parser = reqparse.RequestParser()
         parser.add_argument('uuid', type=str, required=True)
         _uuid = parser.parse_args().get('uuid')
@@ -134,7 +127,6 @@ class Question(Resource):
                     'time_limit': round(time_limit)
                 }
                 uuid_list.append(_uuid)
-                question_db.append(obj)
                 db.collection(QUESTIONS_FB_DB).document(_uuid).set(obj)
             response = {
                 "UUIDs": uuid_list,
@@ -163,7 +155,6 @@ class Answer(Resource):
             'device_id': data['player']['device_id']
         }
         db.collection(ANSWERS_FB_DB).document(answer_id).set(obj)
-        answer_db.append(obj)
         return obj, 201 if obj else 403
 
     @cross_origin(origin='*', headers=['Content-Type', 'Authorization'])
