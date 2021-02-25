@@ -42,10 +42,21 @@ class Questions(Resource):
 
     @cross_origin(origin='*', headers=['Content-Type', 'Authorization'])
     def get(self):
-        return {
-            "questions": question_db,
-            "count": len(question_db)
-        }, 200
+        docs = db.collection(QUESTIONS_FB_DB).stream()
+        resp_list = []
+        for doc in docs:
+            doc_resp = doc.to_dict()
+            resp_list.append(doc_resp)
+        if resp_list:
+            return {
+                "questions": resp_list,
+                "count": len(resp_list)
+            }, 200
+        else:
+            return {
+                'message': 'no entries found',
+                'code': 404
+            }, 404
 
 
 # END-POINT FOR HANDLING IND/BATCH QUESTIONS
@@ -56,9 +67,13 @@ class Question(Resource):
         parser = reqparse.RequestParser()
         parser.add_argument('uuid', type=str, required=True)
         target_uuid = parser.parse_args().get('uuid')
+        # if target_uuid:
+        #     question = next(filter(lambda x: x['uuid'] == target_uuid, question_db), None)
         if target_uuid:
-            question = next(filter(lambda x: x['uuid'] == target_uuid, question_db), None)
-            if question:
+            doc_ref = db.collection(QUESTIONS_FB_DB).document(target_uuid)
+            doc = doc_ref.get()
+            if doc.exists:
+                question = doc.to_dict()
                 return {'question': question}, 200
             else:
                 return {'message': 'question_uuid does not exist'}, 404
@@ -72,8 +87,14 @@ class Question(Resource):
         parser.add_argument('uuid', type=str, required=True)
         _uuid = parser.parse_args().get('uuid')
         if _uuid:
-            question_db = list(filter(lambda x: x['uuid'] != _uuid, question_db))
-            return {'questions': question_db, "count": len(question_db)}, 200
+            doc_ref = db.collection(QUESTIONS_FB_DB).document(_uuid)
+            doc = doc_ref.get()
+            if doc.exists:
+                print('doc exists')
+                db.collection(QUESTIONS_FB_DB).document(_uuid).delete()
+                return {'message': "successfully deleted question {}".format(_uuid)}, 200
+            else:
+                return {'message': 'unable to find question {}'.format(_uuid)}, 404
         else:
             return {'message': "missing parameters"}, 400
 
@@ -114,7 +135,7 @@ class Question(Resource):
                 }
                 uuid_list.append(_uuid)
                 question_db.append(obj)
-                db.collection('questions').document(_uuid).set(obj)
+                db.collection(QUESTIONS_FB_DB).document(_uuid).set(obj)
             response = {
                 "UUIDs": uuid_list,
                 "count": len(uuid_list)
@@ -141,8 +162,8 @@ class Answer(Resource):
             'session_id': data['player']['session_id'],
             'device_id': data['player']['device_id']
         }
+        db.collection(ANSWERS_FB_DB).document(answer_id).set(obj)
         answer_db.append(obj)
-        print(obj)
         return obj, 201 if obj else 403
 
     @cross_origin(origin='*', headers=['Content-Type', 'Authorization'])
@@ -151,13 +172,23 @@ class Answer(Resource):
         parser.add_argument('answer_id', type=str, required=True)
         answer_id = parser.parse_args().get('answer_id')
         if answer_id:
-            answer = next(filter(lambda x: x['answer_id'] == answer_id, answer_db), None)
-            if answer:
-                return {'answer': answer}, 200
+            doc_ref = db.collection(ANSWERS_FB_DB).document(answer_id)
+            doc = doc_ref.get()
+            if doc.exists:
+                answer = doc.to_dict()
+                return {
+                    'answer': answer
+                }, 200
             else:
-                return {'message': 'answer_id not found'}, 404
+                return {
+                    "message": "item does not exists",
+                    "code": 404
+                }, 404
         else:
-            return {'message': 'missing query param'}, 400
+            return {
+                "message": "malformed request parameter",
+                "code": 400
+            }, 400
 
     @cross_origin(origin='*', headers=['Content-Type', 'Authorization'])
     def delete(self):
@@ -166,14 +197,20 @@ class Answer(Resource):
         answer_id = parser.parse_args().get('answer_id')
         has_delete = False
         if answer_id:
-            for answer in answer_db:
-                if answer['answer_id'] == answer_id:
-                    answer_db.remove(answer)
-                    has_delete = True
-        if has_delete:
-            return {'message': 'succesfully deleted {}'.format(answer_id)}, 200
+            doc_ref = db.collection(ANSWERS_FB_DB).document(answer_id)
+            doc = doc_ref.get()
+            if doc.exists:
+                db.collection(ANSWERS_FB_DB).document(answer_id).delete()
+                has_delete = True
+            if has_delete:
+                return {'message': 'succesfully deleted {}'.format(answer_id)}, 200
+            else:
+                return {'message': 'failed to find answer {}'.format(answer_id)}, 404
         else:
-            return {'message': 'failed to find answer {}'.format(answer_id)}, 404
+            return {
+                'message': 'malformed query param',
+                'code': 400
+            }, 400
 
 
 # END-POINT FOR GETTING FULL LIST
@@ -188,20 +225,25 @@ class Answers(Resource):
         session_id = parser.parse_args().get('session_id')
         batch = []
         if device_id and session_id:
-            for answer in answer_db:
-                if answer['device_id'] == device_id and answer['session_id'] == session_id:
-                    batch.append(answer)
+            docs = db.collection(ANSWERS_FB_DB).where('session_id', '==', session_id).where('device_id', '==', device_id).stream()
+            for doc in docs:
+                doc_resp = doc.to_dict()
+                batch.append(doc_resp)
         elif device_id and not session_id:
-            for answer in answer_db:
-                if answer['device_id'] == device_id:
-                    batch.append(answer)
+            docs = db.collection(ANSWERS_FB_DB).where('device_id', '==', device_id).stream()
+            for doc in docs:
+                doc_resp = doc.to_dict()
+                batch.append(doc_resp)
         elif not device_id and session_id:
-            for answer in answer_db:
-                if answer['session_id'] == session_id:
-                    batch.append(answer)
+            docs = db.collection(ANSWERS_FB_DB).where('session_id', '==', session_id).stream()
+            for doc in docs:
+                doc_resp = doc.to_dict()
+                batch.append(doc_resp)
         elif not device_id and not session_id:
-            for answer in answer_db:
-                batch.append(answer)
+            docs = db.collection(ANSWERS_FB_DB).stream()
+            for doc in docs:
+                doc_resp = doc.to_dict()
+                batch.append(doc_resp)
 
         if batch:
             return {
@@ -210,7 +252,8 @@ class Answers(Resource):
                    }, 200
         else:
             return {
-                       'message': 'no answer with matching device_id or session_id'
+                       'message': 'no answer with matching device_id or session_id',
+                       'code': 404
                    }, 404
 
 

@@ -4,6 +4,10 @@ APP_SECRET_KEY = "jagger"
 DEBUG = True
 FIREBASE_KEY_PATH = './firebase/jagger-games-661aab4375ad.json'
 
+# FIREBASE DB CONSTANTS
+QUESTIONS_FB_DB = 'questions'
+ANSWERS_FB_DB = 'answers'
+
 
 # GAME CONSTANTS
 
