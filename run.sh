@@ -8,13 +8,13 @@ if [[ ! -d "venv" ]]; then
     virtualenv -p python3 venv
 fi
 source venv/bin/activate
-pip install --upgrade pip
-pip install --upgrade -r requirements.txt
+pip3 install --upgrade pip
+pip3 install --upgrade -r requirements.txt
 
 
 # run test
 echo "Micro service starts at $(date)"
-python3 app.py
+python app.py
 
 
 

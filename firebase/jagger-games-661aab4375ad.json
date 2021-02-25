@@ -1,0 +1,12 @@
+{
+  "type": "service_account",
+  "project_id": "jagger-games",
+  "private_key_id": "661aab4375ad8d5e5e1a10be574946062e033458",
+  "private_key": "-----BEGIN PRIVATE KEY-----\nMIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQDGWBpKEzWYA4g0\nX8J8/jwzVkgc1nZF3l2TsqQaUCbcEnbiKAxm+PY7NSnGy6XFlpqOLGBLvTqM5/8+\nh+Tggza9qG2Js5RctaIlSbQ1yMU1vSf2yx0ATfImFZ2HohO2gUWX8C4YLU0jTSA7\n3e0Yi4PLxHqtxoma0vbHEQ5A6NX56aYLiB7kbptbO9zYAlKDZOBKooiCsyXxSkim\nXfDUIHSxwESurCJnQmfL0WU83lkPi2CdSozawoE1pQS6emMiz/JJJHRAeby+RyzB\nxPcMc3hWJZcz84jU2eRQXeUbFxWOThPEzl7FKSfFwYMK+uqj80aPc7tss0n7JYGi\nfj9JlE6NAgMBAAECggEAPTZ/lpDrH2knphJPsce8yJM+WjgN9G42LxkY8E4AUDca\nnZ2Chl0bkRZNOF8tYBekx3AGoBlccpQ/AAtspaWZRVsvwym7BgnAawWeKmM2CenA\n5be10Zw8uWg+X9ezgcXPtp6Xezqv7c8lvZQ2Ujbsi/ytZ+g4G6I0KyemYH37W88n\nItzn+t32lOc3VmnH46uEY06VrSs5qFhU11w0GplvBUwEONNWHAYQ5htTqH9IzsKV\n3ED3u1Ri3TNM8OFHFUVI831/BsvTdB6KZ/KE17GKm7B3FCeRIfN02at83F4p7/my\nV60+KRzw+95wVqyYJyUaA9aqGDCheO4gLTJFcDkAeQKBgQDmQVVYoalcZA8tT/WF\nCL9atkBRKCxFehoOFQJrQ7XovPJ6sHXL6Ho9DRtIPtF8VbLrP+K0S3H9VR4dVM4S\ngoNQUVbgvzxbyHee5jN8PzyO+jAsm9iQwdoQi+6QuY79xIFIq3+zp4kAKLgjZfsA\n0p6X+3BdSY/unFEN75kxfpPWJwKBgQDchV6BnLyr5+MyO2kX7zMToY9Wq4ugGP7N\nCcm+1uVmboaJTiJNfdfTGxq9O1+/tzH8bfNTdI5hRzLCLvEK9IoeEo3hNwiliVCz\nAyxDtzy0YwhxWFtNAjVumTg9X1d2AUr0PfEcMEsZQApbtO+GVlB9jveSgEJLepQ9\n49IpYQG6KwKBgQDauzvJO6F4fDESuX+hxiKJmNJWhlQwGAMCV6D5ptP66Otr84+j\nig/9SSMeqVY1x+90nTbOUVFS9/XopTQxzzvRI8PlMqWzByfjkglcwXHU3QTAi7fa\nI9z0lQmnAC8/ENpD328rij6SIRxzvCAKswonlJs0c3pAkMxK8c5Uf0sPRwKBgEoc\nRFOY4kt/pfo2vy39BJRfYnXFNyp52//6fyO0wum20V4JtTuHxGW9ITJhZt9eaN0l\n8nWkoUkODX/3GKkO3/AVWjtLLIu9ZzKSKWkkhrE06xx0jlKGIIDn21+8z/7nllIZ\nExPfIw38WL7TQwBJt8lKp+dDVYRaUMGv8+xWHqd7AoGACbYTicldhzla+Ylq2OGK\nO47ChlOSOwABsRj4fNtvenOk8VrOnw2B+iGhU8H7QN5j8e3t0h7yLPFTE8sYXTms\nLjBYb4jIIif+UHiULDgCgKZ+lqe93oLGQwazIxHLrSPkn9rq3qDOsddt76ceZji3\nYD0vlXt9bzrXwQt35nNqwEo=\n-----END PRIVATE KEY-----\n",
+  "client_email": "firebase-adminsdk-7h14e@jagger-games.iam.gserviceaccount.com",
+  "client_id": "110958005464606543234",
+  "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+  "token_uri": "https://oauth2.googleapis.com/token",
+  "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+  "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/firebase-adminsdk-7h14e%40jagger-games.iam.gserviceaccount.com"
+}
