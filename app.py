@@ -26,33 +26,79 @@ cors = CORS(app, resources={r"/*": {"origins": "*"}})
 jwt = JWTManager(app)
 
 
-
 # TODO - CREATE FILTER BY TYPE AND DIFFICULTY
 # TODO - CREATE SORTING BY TIME/DIFFICULTY/TYPE
 # TODO - CREATE FETCHING BY COUNT
 # TODO - "correct" field to accept string or array (for MMCQ)
 # TODO - more enum for MMCQ question type
 
-
 class Questions(Resource):
 
     @cross_origin(origin='*', headers=['Content-Type', 'Authorization'])
     def get(self):
-        docs = db.collection(QUESTIONS_FB_DB).stream()
-        resp_list = []
-        for doc in docs:
-            doc_resp = doc.to_dict()
-            resp_list.append(doc_resp)
-        if resp_list:
-            return {
-                "questions": resp_list,
-                "count": len(resp_list)
-            }, 200
-        else:
-            return {
-                'message': 'no entries found',
-                'code': 404
-            }, 404
+        parser = reqparse.RequestParser()
+        parser.add_argument('difficult', type=str, required=False)
+        parser.add_argument('type', type=str, required=False)
+        difficult = parser.parse_args().get('difficult')
+        difficult = int(difficult) if difficult or difficult == 0 else None
+        _type = parser.parse_args().get('type')
+        _type = int(_type) if _type or _type == 0 else None
+
+        if difficult is not None and _type is not None:
+            docs = db.collection(QUESTIONS_FB_DB).where('difficult', '==', difficult).where('type', '==', _type).stream()
+            qn_list = [doc.to_dict() for doc in docs]
+            if qn_list:
+                return {
+                    'questions': qn_list,
+                    'count': len(qn_list)
+                }, 200
+            else:
+                return {
+                    'message': 'no questions of difficulty {} and type {} found'.format(difficult, _type),
+                    'code': 404
+                }, 404
+
+        elif difficult is not None and _type is None:
+            docs = db.collection(QUESTIONS_FB_DB).where('difficult', '==', difficult).stream()
+            qn_list = [doc.to_dict() for doc in docs]
+            if qn_list:
+                return {
+                           'questions': qn_list,
+                           'count': len(qn_list)
+                       }, 200
+            else:
+                return {
+                           'message': 'no questions of difficulty {} found'.format(difficult),
+                           'code': 404
+                       }, 404
+
+        elif difficult is None and _type is not None:
+            docs = db.collection(QUESTIONS_FB_DB).where('type', '==', _type).stream()
+            qn_list = [doc.to_dict() for doc in docs]
+            if qn_list:
+                return {
+                           'questions': qn_list,
+                           'count': len(qn_list)
+                       }, 200
+            else:
+                return {
+                           'message': 'no questions of type {} found'.format(_type),
+                           'code': 404
+                       }, 404
+
+        elif _type is None and difficult is None:
+            docs = db.collection(QUESTIONS_FB_DB).stream()
+            resp_list = [doc.to_dict() for doc in docs]
+            if resp_list:
+                return {
+                    "questions": resp_list,
+                    "count": len(resp_list)
+                }, 200
+            else:
+                return {
+                    'message': 'no entries found',
+                    'code': 404
+                }, 404
 
 
 # END-POINT FOR HANDLING IND/BATCH QUESTIONS
