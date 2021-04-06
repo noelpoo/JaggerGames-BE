@@ -5,7 +5,7 @@ export LANG=en_US.utf-8
 
 #install requirements
 if [[ ! -d "venv" ]]; then
-    virtualenv -p python3 venv
+    virtualenv -p python venv
 fi
 source venv/bin/activate
 pip3 install --upgrade pip

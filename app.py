@@ -12,6 +12,7 @@ from flask_cors import CORS, cross_origin
 from flask_jwt_extended import JWTManager
 
 from common import *
+from utils import *
 
 # FIREBASE DB
 cred = credentials.Certificate(FIREBASE_KEY_PATH)
@@ -31,6 +32,50 @@ jwt = JWTManager(app)
 # TODO - CREATE FETCHING BY COUNT
 # TODO - "correct" field to accept string or array (for MMCQ)
 # TODO - more enum for MMCQ question type
+# TODO - Tags API (GET and POST and DELETE)
+
+
+class Tags(Resource):
+    @cross_origin(origin='*', headers=['Content-Type', 'Authorization'])
+    def post(self):
+        tag_id = str(uuid.uuid4())
+        data = request.get_json(force=True)
+
+        docs = db.collection(TAGS_FB_DB).stream()
+        _tags = [doc.to_dict() for doc in docs]
+
+        if not check_if_tag_exists(_tags, data):
+            obj = {
+                "uuid": tag_id,
+                "tag": data['tag'],
+                "localisation": data['localisation']
+            }
+            db.collection(TAGS_FB_DB).document(tag_id).set(obj)
+            return obj, 201 if obj else 403
+        else:
+            return {
+                "message": "duplicate tag or tag-localisation"
+            }, 403
+
+    @cross_origin(origin='*', headers=['Content-Type', 'Authorization'])
+    def delete(self):
+        data = request.get_json(force=True)
+        to_delete = data['uuids']
+        for uuid in to_delete:
+            db.collection(TAGS_FB_DB).document(uuid).delete()
+        return {
+            "deleted": to_delete
+        }, 200
+        # db.collection(QUESTIONS_FB_DB).document(_uuid).delete()
+
+    @cross_origin(origin='*', headers=['Content-Type', 'Authorization'])
+    def get(self):
+        docs = db.collection(TAGS_FB_DB).stream()
+        _tags = [doc.to_dict() for doc in docs]
+        return {
+            'tags': _tags
+        }, 200
+
 
 class Questions(Resource):
 
@@ -311,6 +356,7 @@ api.add_resource(Question, '{}/question'.format(API_PATH))
 api.add_resource(Questions, '{}/questions'.format(API_PATH))
 api.add_resource(Answer, '{}/answer'.format(API_PATH))
 api.add_resource(Answers, '{}/answers'.format(API_PATH))
+api.add_resource(Tags, '{}/tags'.format(API_PATH))
 
 
 if __name__ == "__main__":
