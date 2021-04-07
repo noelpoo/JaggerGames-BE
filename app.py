@@ -12,6 +12,7 @@ from flask_cors import CORS, cross_origin
 from flask_jwt_extended import JWTManager
 
 from common import *
+from utils import *
 
 # FIREBASE DB
 cred = credentials.Certificate(FIREBASE_KEY_PATH)
@@ -25,38 +26,124 @@ app.config['CORS_HEADERS'] = 'Content-Type'
 cors = CORS(app, resources={r"/*": {"origins": "*"}})
 jwt = JWTManager(app)
 
-# IN-MEMORY DATABASE
-# TODO - MIGRATE TO NON-SQL DB
-question_db = []
-answer_db = []
-
 
 # TODO - CREATE FILTER BY TYPE AND DIFFICULTY
 # TODO - CREATE SORTING BY TIME/DIFFICULTY/TYPE
 # TODO - CREATE FETCHING BY COUNT
 # TODO - "correct" field to accept string or array (for MMCQ)
 # TODO - more enum for MMCQ question type
+# TODO - Tags API (GET and POST and DELETE)
+
+
+class Tags(Resource):
+    @cross_origin(origin='*', headers=['Content-Type', 'Authorization'])
+    def post(self):
+        tag_id = str(uuid.uuid4())
+        data = request.get_json(force=True)
+
+        docs = db.collection(TAGS_FB_DB).stream()
+        _tags = [doc.to_dict() for doc in docs]
+
+        if not check_if_tag_exists(_tags, data):
+            obj = {
+                "uuid": tag_id,
+                "tag": data['tag'],
+                "localisation": data['localisation']
+            }
+            db.collection(TAGS_FB_DB).document(tag_id).set(obj)
+            return obj, 201 if obj else 403
+        else:
+            return {
+                "message": "duplicate tag or tag-localisation"
+            }, 403
+
+    @cross_origin(origin='*', headers=['Content-Type', 'Authorization'])
+    def delete(self):
+        data = request.get_json(force=True)
+        to_delete = data['uuids']
+        for uuid in to_delete:
+            db.collection(TAGS_FB_DB).document(uuid).delete()
+        return {
+            "deleted": to_delete
+        }, 200
+        # db.collection(QUESTIONS_FB_DB).document(_uuid).delete()
+
+    @cross_origin(origin='*', headers=['Content-Type', 'Authorization'])
+    def get(self):
+        docs = db.collection(TAGS_FB_DB).stream()
+        _tags = [doc.to_dict() for doc in docs]
+        return {
+            'tags': _tags
+        }, 200
 
 
 class Questions(Resource):
 
     @cross_origin(origin='*', headers=['Content-Type', 'Authorization'])
     def get(self):
-        docs = db.collection(QUESTIONS_FB_DB).stream()
-        resp_list = []
-        for doc in docs:
-            doc_resp = doc.to_dict()
-            resp_list.append(doc_resp)
-        if resp_list:
-            return {
-                "questions": resp_list,
-                "count": len(resp_list)
-            }, 200
-        else:
-            return {
-                'message': 'no entries found',
-                'code': 404
-            }, 404
+        parser = reqparse.RequestParser()
+        parser.add_argument('difficult', type=str, required=False)
+        parser.add_argument('type', type=str, required=False)
+        difficult = parser.parse_args().get('difficult')
+        difficult = int(difficult) if difficult or difficult == 0 else None
+        _type = parser.parse_args().get('type')
+        _type = int(_type) if _type or _type == 0 else None
+
+        if difficult is not None and _type is not None:
+            docs = db.collection(QUESTIONS_FB_DB).where('difficult', '==', difficult).where('type', '==', _type).stream()
+            qn_list = [doc.to_dict() for doc in docs]
+            if qn_list:
+                return {
+                    'questions': qn_list,
+                    'count': len(qn_list)
+                }, 200
+            else:
+                return {
+                    'message': 'no questions of difficulty {} and type {} found'.format(difficult, _type),
+                    'code': 404
+                }, 404
+
+        elif difficult is not None and _type is None:
+            docs = db.collection(QUESTIONS_FB_DB).where('difficult', '==', difficult).stream()
+            qn_list = [doc.to_dict() for doc in docs]
+            if qn_list:
+                return {
+                           'questions': qn_list,
+                           'count': len(qn_list)
+                       }, 200
+            else:
+                return {
+                           'message': 'no questions of difficulty {} found'.format(difficult),
+                           'code': 404
+                       }, 404
+
+        elif difficult is None and _type is not None:
+            docs = db.collection(QUESTIONS_FB_DB).where('type', '==', _type).stream()
+            qn_list = [doc.to_dict() for doc in docs]
+            if qn_list:
+                return {
+                           'questions': qn_list,
+                           'count': len(qn_list)
+                       }, 200
+            else:
+                return {
+                           'message': 'no questions of type {} found'.format(_type),
+                           'code': 404
+                       }, 404
+
+        elif _type is None and difficult is None:
+            docs = db.collection(QUESTIONS_FB_DB).stream()
+            resp_list = [doc.to_dict() for doc in docs]
+            if resp_list:
+                return {
+                    "questions": resp_list,
+                    "count": len(resp_list)
+                }, 200
+            else:
+                return {
+                    'message': 'no entries found',
+                    'code': 404
+                }, 404
 
 
 # END-POINT FOR HANDLING IND/BATCH QUESTIONS
@@ -67,8 +154,6 @@ class Question(Resource):
         parser = reqparse.RequestParser()
         parser.add_argument('uuid', type=str, required=True)
         target_uuid = parser.parse_args().get('uuid')
-        # if target_uuid:
-        #     question = next(filter(lambda x: x['uuid'] == target_uuid, question_db), None)
         if target_uuid:
             doc_ref = db.collection(QUESTIONS_FB_DB).document(target_uuid)
             doc = doc_ref.get()
@@ -82,7 +167,6 @@ class Question(Resource):
 
     @cross_origin(origin='*', headers=['Content-Type', 'Authorization'])
     def delete(self):
-        global question_db
         parser = reqparse.RequestParser()
         parser.add_argument('uuid', type=str, required=True)
         _uuid = parser.parse_args().get('uuid')
@@ -134,7 +218,6 @@ class Question(Resource):
                     'time_limit': round(time_limit)
                 }
                 uuid_list.append(_uuid)
-                question_db.append(obj)
                 db.collection(QUESTIONS_FB_DB).document(_uuid).set(obj)
             response = {
                 "UUIDs": uuid_list,
@@ -163,7 +246,6 @@ class Answer(Resource):
             'device_id': data['player']['device_id']
         }
         db.collection(ANSWERS_FB_DB).document(answer_id).set(obj)
-        answer_db.append(obj)
         return obj, 201 if obj else 403
 
     @cross_origin(origin='*', headers=['Content-Type', 'Authorization'])
@@ -274,6 +356,7 @@ api.add_resource(Question, '{}/question'.format(API_PATH))
 api.add_resource(Questions, '{}/questions'.format(API_PATH))
 api.add_resource(Answer, '{}/answer'.format(API_PATH))
 api.add_resource(Answers, '{}/answers'.format(API_PATH))
+api.add_resource(Tags, '{}/tags'.format(API_PATH))
 
 
 if __name__ == "__main__":
