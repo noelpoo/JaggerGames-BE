@@ -11,8 +11,8 @@ from flask_restful import Resource, Api, reqparse
 from flask_cors import CORS, cross_origin
 from flask_jwt_extended import JWTManager
 
-from common import *
 from utils import *
+from config import *
 
 # FIREBASE DB
 cred = credentials.Certificate(FIREBASE_KEY_PATH)
@@ -27,13 +27,10 @@ cors = CORS(app, resources={r"/*": {"origins": "*"}})
 jwt = JWTManager(app)
 
 
-# TODO - CREATE FILTER BY TYPE AND DIFFICULTY
-# TODO - CREATE SORTING BY TIME/DIFFICULTY/TYPE
 # TODO - CREATE FETCHING BY COUNT
 # TODO - "correct" field to accept string or array (for MMCQ)
 # TODO - more enum for MMCQ question type
-# TODO - Tags API (GET and POST and DELETE)
-
+# TODO - create job to refresh tag_list in-memory
 
 class Tags(Resource):
     @cross_origin(origin='*', headers=['Content-Type', 'Authorization'])
@@ -78,72 +75,151 @@ class Tags(Resource):
 
 
 class Questions(Resource):
-
+    # TODO - TOP DOWN FILTERING, DIFFICULTY > TYPE > TAGS
     @cross_origin(origin='*', headers=['Content-Type', 'Authorization'])
     def get(self):
         parser = reqparse.RequestParser()
         parser.add_argument('difficult', type=str, required=False)
         parser.add_argument('type', type=str, required=False)
+        parser.add_argument('tags', type=list, required=False)
+
         difficult = parser.parse_args().get('difficult')
         difficult = int(difficult) if difficult or difficult == 0 else None
         _type = parser.parse_args().get('type')
         _type = int(_type) if _type or _type == 0 else None
+        tags = parser.parse_args().get('tags')
+        tags = tags if tags or tags != [] else None
 
-        if difficult is not None and _type is not None:
-            docs = db.collection(QUESTIONS_FB_DB).where('difficult', '==', difficult).where('type', '==', _type).stream()
-            qn_list = [doc.to_dict() for doc in docs]
-            if qn_list:
-                return {
-                    'questions': qn_list,
-                    'count': len(qn_list)
-                }, 200
-            else:
-                return {
-                    'message': 'no questions of difficulty {} and type {} found'.format(difficult, _type),
-                    'code': 404
-                }, 404
+        # filtered_list = []
+        docs = db.collection(QUESTIONS_FB_DB).stream()
+        unfiltered_list = [doc.to_dict() for doc in docs]
+        print("unfiltered list: {}".format(unfiltered_list))
 
-        elif difficult is not None and _type is None:
-            docs = db.collection(QUESTIONS_FB_DB).where('difficult', '==', difficult).stream()
-            qn_list = [doc.to_dict() for doc in docs]
-            if qn_list:
-                return {
-                           'questions': qn_list,
-                           'count': len(qn_list)
-                       }, 200
-            else:
-                return {
-                           'message': 'no questions of difficulty {} found'.format(difficult),
-                           'code': 404
-                       }, 404
+        if difficult:
+            new_list = [doc for doc in unfiltered_list if doc['difficult'] == difficult]
+        else:
+            new_list = unfiltered_list
 
-        elif difficult is None and _type is not None:
-            docs = db.collection(QUESTIONS_FB_DB).where('type', '==', _type).stream()
-            qn_list = [doc.to_dict() for doc in docs]
-            if qn_list:
-                return {
-                           'questions': qn_list,
-                           'count': len(qn_list)
-                       }, 200
-            else:
-                return {
-                           'message': 'no questions of type {} found'.format(_type),
-                           'code': 404
-                       }, 404
+        if _type:
+            new_list = [doc for doc in new_list if doc['type'] == _type]
+        else:
+            new_list = new_list
 
-        elif _type is None and difficult is None:
-            docs = db.collection(QUESTIONS_FB_DB).stream()
-            resp_list = [doc.to_dict() for doc in docs]
-            if resp_list:
-                return {
-                    "questions": resp_list,
-                    "count": len(resp_list)
-                }, 200
-            else:
-                return {
-                    'message': 'no entries found',
-                    'code': 404
-                }, 404
+        if tags:
+            new_list = [doc for doc in new_list if (doc['tags'] == tags)]
+        else:
+            new_list = new_list
+
+        return {
+            'count': len(new_list),
+            'questions': new_list
+        }
+    # check =  any(item in List1 for item in List2)
+
+
+
+    #
+    # @cross_origin(origin='*', headers=['Content-Type', 'Authorization'])
+    # def get(self):
+    #     parser = reqparse.RequestParser()
+    #     parser.add_argument('difficult', type=str, required=False)
+    #     parser.add_argument('type', type=str, required=False)
+    #     difficult = parser.parse_args().get('difficult')
+    #     difficult = int(difficult) if difficult or difficult == 0 else None
+    #     _type = parser.parse_args().get('type')
+    #     _type = int(_type) if _type or _type == 0 else None
+    #
+    #     if difficult is not None and _type is not None:
+    #         docs = db.collection(QUESTIONS_FB_DB).where('difficult', '==', difficult).where('type', '==', _type).stream()
+    #         qn_list = [doc.to_dict() for doc in docs]
+    #         if qn_list:
+    #             return {
+    #                 'questions': qn_list,
+    #                 'count': len(qn_list)
+    #             }, 200
+    #         else:
+    #             return {
+    #                 'message': 'no questions of difficulty {} and type {} found'.format(difficult, _type),
+    #                 'code': 404
+    #             }, 404
+    #
+    #     elif difficult is not None and _type is None:
+    #         docs = db.collection(QUESTIONS_FB_DB).where('difficult', '==', difficult).stream()
+    #         qn_list = [doc.to_dict() for doc in docs]
+    #         if qn_list:
+    #             return {
+    #                        'questions': qn_list,
+    #                        'count': len(qn_list)
+    #                    }, 200
+    #         else:
+    #             return {
+    #                        'message': 'no questions of difficulty {} found'.format(difficult),
+    #                        'code': 404
+    #                    }, 404
+    #
+    #     elif difficult is None and _type is not None:
+    #         docs = db.collection(QUESTIONS_FB_DB).where('type', '==', _type).stream()
+    #         qn_list = [doc.to_dict() for doc in docs]
+    #         if qn_list:
+    #             return {
+    #                        'questions': qn_list,
+    #                        'count': len(qn_list)
+    #                    }, 200
+    #         else:
+    #             return {
+    #                        'message': 'no questions of type {} found'.format(_type),
+    #                        'code': 404
+    #                    }, 404
+    #
+    #     elif _type is None and difficult is None:
+    #         docs = db.collection(QUESTIONS_FB_DB).stream()
+    #         resp_list = [doc.to_dict() for doc in docs]
+    #         if resp_list:
+    #             return {
+    #                 "questions": resp_list,
+    #                 "count": len(resp_list)
+    #             }, 200
+    #         else:
+    #             return {
+    #                 'message': 'no entries found',
+    #                 'code': 404
+    #             }, 404
+
+
+# TODO - add TAGS validation for tags field in post request, validate that tags exist in db
+class QuestionNonCSV(Resource):
+    @cross_origin(origin='*', headers=['Content-Type', 'Authorization'])
+    def post(self):
+        _uuid = str(uuid.uuid4())
+
+        data = request.get_json(force=True)
+        choice_one = data['c1'] if data['c1'] else None
+        choice_two = data['c2'] if data['c2'] else None
+        choice_three = data['c3'] if data['c3'] else None
+        choice_four = data['c4'] if data['c4'] else None
+        obj = {
+            "c1": choice_one,
+            "c2": choice_two,
+            "c3": choice_three,
+            "c4": choice_four,
+            "correct": data['correct'],
+            'create_time': round(time.time()),
+            "difficult": data['difficult'],
+            "hint": data['hint'],
+            "question": data['question'],
+            "time_limit": data['time_limit'],
+            "type": data['type'],
+            "uuid": _uuid,
+            "tags": data['tags']
+        }
+        db.collection(QUESTIONS_FB_DB).document(_uuid).set(obj)
+
+        return {
+            'message': "sucessfully uploaded",
+            'code': 200,
+            'uuid': _uuid,
+            'uploaded': obj
+        }, 201
 
 
 # END-POINT FOR HANDLING IND/BATCH QUESTIONS
@@ -215,7 +291,8 @@ class Question(Resource):
                     'correct': correct,
                     'hint': hint,
                     'create_time': round(time.time()),
-                    'time_limit': round(time_limit)
+                    'time_limit': round(time_limit),
+                    'tags': []
                 }
                 uuid_list.append(_uuid)
                 db.collection(QUESTIONS_FB_DB).document(_uuid).set(obj)
@@ -341,22 +418,13 @@ class Answers(Resource):
 
 # TODO - CREATE QUESTION-FEEDS API
 
-def create_time_limit(diff, qn_type, qn):
-    base = MIN_TIME_LIMIT
-    diff_pt = DIFF_WEIGHT * diff * base
-    type_pt = TYPE_WEIGHT * qn_type * base
-    qn_pt = 0
-    if len(qn) > 10:
-        qn_pt = (len(qn) - 10) * LEN_WEIGHT
-    return round(base + diff_pt + type_pt + qn_pt)
-
-
 # CREATING ENDPOINTS
 api.add_resource(Question, '{}/question'.format(API_PATH))
 api.add_resource(Questions, '{}/questions'.format(API_PATH))
 api.add_resource(Answer, '{}/answer'.format(API_PATH))
 api.add_resource(Answers, '{}/answers'.format(API_PATH))
 api.add_resource(Tags, '{}/tags'.format(API_PATH))
+api.add_resource(QuestionNonCSV, '{}/question_non_csv'.format(API_PATH))
 
 
 if __name__ == "__main__":
