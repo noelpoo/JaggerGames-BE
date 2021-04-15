@@ -4,6 +4,9 @@ DIFF_WEIGHT = 0.25
 TYPE_WEIGHT = 0.25
 LEN_WEIGHT = 0.5
 
+# DATA BASE
+DATA_BASE = "data.db"
+
 
 
 
