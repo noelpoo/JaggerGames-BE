@@ -1,9 +1,7 @@
 import os
 import time
 import uuid
-import math
 import firebase_admin
-import pandas as pd
 from firebase_admin import credentials
 from firebase_admin import firestore
 from flask import Flask, request
@@ -11,12 +9,16 @@ from flask_restful import Resource, Api, reqparse
 from flask_cors import CORS, cross_origin
 from flask_jwt_extended import JWTManager
 
-from utils import *
 from config import *
+from models.tag import TagsResource
+from models.question import QuestionResource, AllQuestionsResource
+from models.csv_parser import CsvParserResource
 
 # FIREBASE DB
-cred = credentials.Certificate(FIREBASE_KEY_PATH)
-firebase_admin.initialize_app(cred)
+if not firebase_admin._apps:
+    cred = credentials.Certificate(FIREBASE_KEY_PATH)
+    default_app = firebase_admin.initialize_app(cred)
+
 db = firestore.client()
 
 app = Flask(__name__)
@@ -31,47 +33,6 @@ jwt = JWTManager(app)
 # TODO - "correct" field to accept string or array (for MMCQ)
 # TODO - more enum for MMCQ question type
 # TODO - create job to refresh tag_list in-memory
-
-class Tags(Resource):
-    @cross_origin(origin='*', headers=['Content-Type', 'Authorization'])
-    def post(self):
-        tag_id = str(uuid.uuid4())
-        data = request.get_json(force=True)
-
-        docs = db.collection(TAGS_FB_DB).stream()
-        _tags = [doc.to_dict() for doc in docs]
-
-        if not check_if_tag_exists(_tags, data):
-            obj = {
-                "uuid": tag_id,
-                "tag": data['tag'],
-                "localisation": data['localisation']
-            }
-            db.collection(TAGS_FB_DB).document(tag_id).set(obj)
-            return obj, 201 if obj else 403
-        else:
-            return {
-                "message": "duplicate tag or tag-localisation"
-            }, 403
-
-    @cross_origin(origin='*', headers=['Content-Type', 'Authorization'])
-    def delete(self):
-        data = request.get_json(force=True)
-        to_delete = data['uuids']
-        for uuid in to_delete:
-            db.collection(TAGS_FB_DB).document(uuid).delete()
-        return {
-            "deleted": to_delete
-        }, 200
-        # db.collection(QUESTIONS_FB_DB).document(_uuid).delete()
-
-    @cross_origin(origin='*', headers=['Content-Type', 'Authorization'])
-    def get(self):
-        docs = db.collection(TAGS_FB_DB).stream()
-        _tags = [doc.to_dict() for doc in docs]
-        return {
-            'tags': _tags
-        }, 200
 
 
 class Questions(Resource):
@@ -114,112 +75,6 @@ class Questions(Resource):
             'count': len(new_list),
             'questions': new_list
         }
-    # check =  any(item in List1 for item in List2)
-
-
-
-    #
-    # @cross_origin(origin='*', headers=['Content-Type', 'Authorization'])
-    # def get(self):
-    #     parser = reqparse.RequestParser()
-    #     parser.add_argument('difficult', type=str, required=False)
-    #     parser.add_argument('type', type=str, required=False)
-    #     difficult = parser.parse_args().get('difficult')
-    #     difficult = int(difficult) if difficult or difficult == 0 else None
-    #     _type = parser.parse_args().get('type')
-    #     _type = int(_type) if _type or _type == 0 else None
-    #
-    #     if difficult is not None and _type is not None:
-    #         docs = db.collection(QUESTIONS_FB_DB).where('difficult', '==', difficult).where('type', '==', _type).stream()
-    #         qn_list = [doc.to_dict() for doc in docs]
-    #         if qn_list:
-    #             return {
-    #                 'questions': qn_list,
-    #                 'count': len(qn_list)
-    #             }, 200
-    #         else:
-    #             return {
-    #                 'message': 'no questions of difficulty {} and type {} found'.format(difficult, _type),
-    #                 'code': 404
-    #             }, 404
-    #
-    #     elif difficult is not None and _type is None:
-    #         docs = db.collection(QUESTIONS_FB_DB).where('difficult', '==', difficult).stream()
-    #         qn_list = [doc.to_dict() for doc in docs]
-    #         if qn_list:
-    #             return {
-    #                        'questions': qn_list,
-    #                        'count': len(qn_list)
-    #                    }, 200
-    #         else:
-    #             return {
-    #                        'message': 'no questions of difficulty {} found'.format(difficult),
-    #                        'code': 404
-    #                    }, 404
-    #
-    #     elif difficult is None and _type is not None:
-    #         docs = db.collection(QUESTIONS_FB_DB).where('type', '==', _type).stream()
-    #         qn_list = [doc.to_dict() for doc in docs]
-    #         if qn_list:
-    #             return {
-    #                        'questions': qn_list,
-    #                        'count': len(qn_list)
-    #                    }, 200
-    #         else:
-    #             return {
-    #                        'message': 'no questions of type {} found'.format(_type),
-    #                        'code': 404
-    #                    }, 404
-    #
-    #     elif _type is None and difficult is None:
-    #         docs = db.collection(QUESTIONS_FB_DB).stream()
-    #         resp_list = [doc.to_dict() for doc in docs]
-    #         if resp_list:
-    #             return {
-    #                 "questions": resp_list,
-    #                 "count": len(resp_list)
-    #             }, 200
-    #         else:
-    #             return {
-    #                 'message': 'no entries found',
-    #                 'code': 404
-    #             }, 404
-
-
-# TODO - add TAGS validation for tags field in post request, validate that tags exist in db
-class QuestionNonCSV(Resource):
-    @cross_origin(origin='*', headers=['Content-Type', 'Authorization'])
-    def post(self):
-        _uuid = str(uuid.uuid4())
-
-        data = request.get_json(force=True)
-        choice_one = data['c1'] if data['c1'] else None
-        choice_two = data['c2'] if data['c2'] else None
-        choice_three = data['c3'] if data['c3'] else None
-        choice_four = data['c4'] if data['c4'] else None
-        obj = {
-            "c1": choice_one,
-            "c2": choice_two,
-            "c3": choice_three,
-            "c4": choice_four,
-            "correct": data['correct'],
-            'create_time': round(time.time()),
-            "difficult": data['difficult'],
-            "hint": data['hint'],
-            "question": data['question'],
-            "time_limit": data['time_limit'],
-            "type": data['type'],
-            "uuid": _uuid,
-            "tags": data['tags']
-        }
-        db.collection(QUESTIONS_FB_DB).document(_uuid).set(obj)
-
-        return {
-            'message': "sucessfully uploaded",
-            'code': 200,
-            'uuid': _uuid,
-            'uploaded': obj
-        }, 201
 
 
 # END-POINT FOR HANDLING IND/BATCH QUESTIONS
@@ -257,52 +112,6 @@ class Question(Resource):
                 return {'message': 'unable to find question {}'.format(_uuid)}, 404
         else:
             return {'message': "missing parameters"}, 400
-
-    @cross_origin(origin='*', headers=['Content-Type', 'Authorization'])
-    def post(self):
-        request_data = request.get_json(force=True)
-        download_url = request_data['url']
-        try:
-            df = pd.read_csv(download_url)
-            uuid_list = []
-            questions = df.iterrows()
-
-            for index, question in questions:
-                _uuid = str(uuid.uuid4())
-                _question = question[0]
-                difficulty = question[1]
-                qn_type = question[2]
-                choice_1 = str(round(question[3])) if not math.isnan(question[3]) else None
-                choice_2 = str(round(question[4])) if not math.isnan(question[4]) else None
-                choice_3 = str(round(question[5])) if not math.isnan(question[5]) else None
-                choice_4 = str(round(question[6])) if not math.isnan(question[6]) else None
-                correct = str(question[7])
-                hint = question[8] if isinstance(question[8], str) else None
-                time_limit = question[9] if not math.isnan(question[9]) else create_time_limit(diff=difficulty, qn_type=qn_type, qn=_question)
-                obj = {
-                    "uuid": _uuid,
-                    "question": _question,
-                    "difficult": difficulty,
-                    "type": qn_type,
-                    "c1": choice_1,
-                    'c2': choice_2,
-                    'c3': choice_3,
-                    'c4': choice_4,
-                    'correct': correct,
-                    'hint': hint,
-                    'create_time': round(time.time()),
-                    'time_limit': round(time_limit),
-                    'tags': []
-                }
-                uuid_list.append(_uuid)
-                db.collection(QUESTIONS_FB_DB).document(_uuid).set(obj)
-            response = {
-                "UUIDs": uuid_list,
-                "count": len(uuid_list)
-            }
-            return response, 201
-        except TypeError:
-            return {"message": "failed to parse CSV, please make sure CSV format is correct"}, 400
 
 
 class Answer(Resource):
@@ -419,12 +228,13 @@ class Answers(Resource):
 # TODO - CREATE QUESTION-FEEDS API
 
 # CREATING ENDPOINTS
-api.add_resource(Question, '{}/question'.format(API_PATH))
-api.add_resource(Questions, '{}/questions'.format(API_PATH))
+# api.add_resource(Question, '{}/question'.format(API_PATH))
+api.add_resource(QuestionResource, '{}/question'.format(API_PATH))
+api.add_resource(AllQuestionsResource, '{}/questions'.format(API_PATH))
+api.add_resource(CsvParserResource, '{}/csv_parser'.format(API_PATH))
 api.add_resource(Answer, '{}/answer'.format(API_PATH))
 api.add_resource(Answers, '{}/answers'.format(API_PATH))
-api.add_resource(Tags, '{}/tags'.format(API_PATH))
-api.add_resource(QuestionNonCSV, '{}/question_non_csv'.format(API_PATH))
+api.add_resource(TagsResource, '{}/tags'.format(API_PATH))
 
 
 if __name__ == "__main__":

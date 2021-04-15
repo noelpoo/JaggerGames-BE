@@ -1,12 +1,20 @@
 from common import *
 
 
-def check_if_tag_exists(list_of_tags, new_tag):
+def check_if_tag_exists(list_of_tag_obj, new_tag):
     exists = False
+
+    list_of_tags = [{
+        'tag': obj.tag,
+        'uuid': obj.uuid,
+        'localisation': obj.localisation
+    } for obj in list_of_tag_obj]
+
     for tag in list_of_tags:
         if tag['tag'] == new_tag['tag'] or tag['localisation'] == new_tag['localisation']:
             exists = True
             break
+
     return exists
 
 
