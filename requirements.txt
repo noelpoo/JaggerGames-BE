@@ -11,3 +11,5 @@ Flask-JWT-Extended==3.25.0
 pandas==1.2.1
 firebase==3.0.1
 firebase-admin==4.5.2
+pytest==5.4.2
+
