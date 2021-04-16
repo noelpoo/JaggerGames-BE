@@ -28,6 +28,7 @@ class QuestionCSV:
 
 
 class CsvParserResource(Resource):
+
     @cross_origin(origin='*', headers=['Content-Type', 'Authorization'])
     def post(self):
         data = request.get_json(force=True)
@@ -87,12 +88,11 @@ class CsvParserResource(Resource):
                 }
                 resp_list.append(json_obj)
 
-            return{
-                'questions': resp_list
-            }, 200
+            return {
+                       'questions': resp_list
+                   }, 200
 
         except ReferenceError:
             return {
-                'message': 'failed to parse csv'
-            }, 417
-
+                       'message': 'failed to parse csv'
+                   }, 417

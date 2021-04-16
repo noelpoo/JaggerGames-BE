@@ -26,3 +26,16 @@ def create_time_limit(diff, qn_type, qn):
     if len(qn) > 10:
         qn_pt = (len(qn) - 10) * LEN_WEIGHT
     return round(base + diff_pt + type_pt + qn_pt)
+
+
+def split_multiple_params_into_list(string):
+    if string:
+        param_list = string.split(',')
+        return param_list
+    else:
+        return None
+
+
+def check_list_contains_list(big_list, small_list):
+    return all(elem in big_list for elem in small_list)
+

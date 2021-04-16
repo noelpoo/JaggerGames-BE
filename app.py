@@ -35,85 +35,6 @@ jwt = JWTManager(app)
 # TODO - create job to refresh tag_list in-memory
 
 
-class Questions(Resource):
-    # TODO - TOP DOWN FILTERING, DIFFICULTY > TYPE > TAGS
-    @cross_origin(origin='*', headers=['Content-Type', 'Authorization'])
-    def get(self):
-        parser = reqparse.RequestParser()
-        parser.add_argument('difficult', type=str, required=False)
-        parser.add_argument('type', type=str, required=False)
-        parser.add_argument('tags', type=list, required=False)
-
-        difficult = parser.parse_args().get('difficult')
-        difficult = int(difficult) if difficult or difficult == 0 else None
-        _type = parser.parse_args().get('type')
-        _type = int(_type) if _type or _type == 0 else None
-        tags = parser.parse_args().get('tags')
-        tags = tags if tags or tags != [] else None
-
-        # filtered_list = []
-        docs = db.collection(QUESTIONS_FB_DB).stream()
-        unfiltered_list = [doc.to_dict() for doc in docs]
-        print("unfiltered list: {}".format(unfiltered_list))
-
-        if difficult:
-            new_list = [doc for doc in unfiltered_list if doc['difficult'] == difficult]
-        else:
-            new_list = unfiltered_list
-
-        if _type:
-            new_list = [doc for doc in new_list if doc['type'] == _type]
-        else:
-            new_list = new_list
-
-        if tags:
-            new_list = [doc for doc in new_list if (doc['tags'] == tags)]
-        else:
-            new_list = new_list
-
-        return {
-            'count': len(new_list),
-            'questions': new_list
-        }
-
-
-# END-POINT FOR HANDLING IND/BATCH QUESTIONS
-class Question(Resource):
-
-    @cross_origin(origin='*', headers=['Content-Type', 'Authorization'])
-    def get(self):
-        parser = reqparse.RequestParser()
-        parser.add_argument('uuid', type=str, required=True)
-        target_uuid = parser.parse_args().get('uuid')
-        if target_uuid:
-            doc_ref = db.collection(QUESTIONS_FB_DB).document(target_uuid)
-            doc = doc_ref.get()
-            if doc.exists:
-                question = doc.to_dict()
-                return {'question': question}, 200
-            else:
-                return {'message': 'question_uuid does not exist'}, 404
-        else:
-            return {'message': "missing query parameters"}, 400
-
-    @cross_origin(origin='*', headers=['Content-Type', 'Authorization'])
-    def delete(self):
-        parser = reqparse.RequestParser()
-        parser.add_argument('uuid', type=str, required=True)
-        _uuid = parser.parse_args().get('uuid')
-        if _uuid:
-            doc_ref = db.collection(QUESTIONS_FB_DB).document(_uuid)
-            doc = doc_ref.get()
-            if doc.exists:
-                print('doc exists')
-                db.collection(QUESTIONS_FB_DB).document(_uuid).delete()
-                return {'message': "successfully deleted question {}".format(_uuid)}, 200
-            else:
-                return {'message': 'unable to find question {}'.format(_uuid)}, 404
-        else:
-            return {'message': "missing parameters"}, 400
-
-
 class Answer(Resource):
 
     @cross_origin(origin='*', headers=['Content-Type', 'Authorization'])
@@ -145,18 +66,18 @@ class Answer(Resource):
             if doc.exists:
                 answer = doc.to_dict()
                 return {
-                    'answer': answer
-                }, 200
+                           'answer': answer
+                       }, 200
             else:
                 return {
-                    "message": "item does not exists",
-                    "code": 404
-                }, 404
+                           "message": "item does not exists",
+                           "code": 404
+                       }, 404
         else:
             return {
-                "message": "malformed request parameter",
-                "code": 400
-            }, 400
+                       "message": "malformed request parameter",
+                       "code": 400
+                   }, 400
 
     @cross_origin(origin='*', headers=['Content-Type', 'Authorization'])
     def delete(self):
@@ -176,9 +97,9 @@ class Answer(Resource):
                 return {'message': 'failed to find answer {}'.format(answer_id)}, 404
         else:
             return {
-                'message': 'malformed query param',
-                'code': 400
-            }, 400
+                       'message': 'malformed query param',
+                       'code': 400
+                   }, 400
 
 
 # END-POINT FOR GETTING FULL LIST
@@ -193,7 +114,8 @@ class Answers(Resource):
         session_id = parser.parse_args().get('session_id')
         batch = []
         if device_id and session_id:
-            docs = db.collection(ANSWERS_FB_DB).where('session_id', '==', session_id).where('device_id', '==', device_id).stream()
+            docs = db.collection(ANSWERS_FB_DB).where('session_id', '==', session_id).where('device_id', '==',
+                                                                                            device_id).stream()
             for doc in docs:
                 doc_resp = doc.to_dict()
                 batch.append(doc_resp)
@@ -228,7 +150,6 @@ class Answers(Resource):
 # TODO - CREATE QUESTION-FEEDS API
 
 # CREATING ENDPOINTS
-# api.add_resource(Question, '{}/question'.format(API_PATH))
 api.add_resource(QuestionResource, '{}/question'.format(API_PATH))
 api.add_resource(AllQuestionsResource, '{}/questions'.format(API_PATH))
 api.add_resource(CsvParserResource, '{}/csv_parser'.format(API_PATH))
@@ -236,8 +157,6 @@ api.add_resource(Answer, '{}/answer'.format(API_PATH))
 api.add_resource(Answers, '{}/answers'.format(API_PATH))
 api.add_resource(TagsResource, '{}/tags'.format(API_PATH))
 
-
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
     app.run(host='0.0.0.0', port=port, debug=DEBUG)
-

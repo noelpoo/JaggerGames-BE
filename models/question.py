@@ -8,6 +8,7 @@ from firebase_admin import credentials
 from firebase_admin import firestore
 
 from config import *
+from utils import split_multiple_params_into_list, check_list_contains_list
 
 if not firebase_admin._apps:
     cred = credentials.Certificate(FIREBASE_KEY_PATH)
@@ -110,6 +111,7 @@ class Question:
 
 
 class QuestionResource(Resource):
+
     @cross_origin(origin='*', headers=['Content-Type', 'Authorization'])
     def get(self):
         parser = reqparse.RequestParser()
@@ -137,6 +139,7 @@ class QuestionResource(Resource):
                        'message': 'question with uuid {} cannot be found'.format(_uuid)
                    }, 403
 
+    # TODO - ADD TAGS VALIDATION
     @cross_origin(origin='*', headers=['Content-Type', 'Authorization'])
     def post(self):
         data = request.get_json(force=True)
@@ -146,7 +149,7 @@ class QuestionResource(Resource):
             data['c3'],
             data['c4'],
             data['correct'],
-            time.time(),
+            int(time.time()),
             data['difficult'],
             data['hint'],
             data['question'],
@@ -172,8 +175,7 @@ class QuestionResource(Resource):
         parser.add_argument('uuid', type=str, required=True)
         _uuid = parser.parse_args().get('uuid')
 
-        search = Question.find_by_uuid(_uuid)
-        if search:
+        if Question.find_by_uuid(_uuid):
             Question.delete_question_from_db(_uuid)
             return {
                        'message': 'successfully deleted {}'.format(_uuid)
@@ -184,36 +186,59 @@ class QuestionResource(Resource):
                    }, 300
 
 
-# TODO - ADD FILTERING FOR THIS RESOURCE
 class AllQuestionsResource(Resource):
 
     @cross_origin(origin='*', headers=['Content-Type', 'Authorization'])
     def get(self):
-        parsed_list = []
+
+        parser = reqparse.RequestParser()
+        parser.add_argument('type', type=int, required=False)
+        parser.add_argument('difficult', type=int, required=False)
+        parser.add_argument('tags', type=str, required=False)
+
+        _type = parser.parse_args().get('type')
+        _difficult = parser.parse_args().get('difficult')
+        _tags = split_multiple_params_into_list(parser.parse_args().get('tags'))
         qn_obj_list = Question.find_all_questions()
+
         if qn_obj_list:
-            for result in qn_obj_list:
-                parsed_list.append({
-                    'c1': result.c1,
-                    'c2': result.c2,
-                    'c3': result.c3,
-                    'c4': result.c4,
-                    'correct': result.correct,
-                    'create_time': result.create_time,
-                    'difficult': result.difficult,
-                    'hint': result.hint,
-                    'question': result.question,
-                    'tags': result.tags,
-                    'time_limit': result.time_limit,
-                    'type': result.type,
-                    'uuid': result.uuid
-                })
+
+            if _type or _type == 0:
+                list_type = [result for result in qn_obj_list if result.type == _type]
+            else:
+                list_type = qn_obj_list
+
+            if _difficult or _difficult == 0:
+                list_diff = [result for result in list_type if result.difficult == _difficult]
+            else:
+                list_diff = list_type
+
+            if _tags:
+                list_tag = [result for result in list_diff if check_list_contains_list(result.tags, _tags)]
+            else:
+                list_tag = list_diff
 
             return {
-                'count': len(parsed_list),
-                'questions': parsed_list
-            }, 200
+                       'count': len(list_tag),
+                       'questions': [
+                           {
+                               'c1': result.c1,
+                               'c2': result.c2,
+                               'c3': result.c3,
+                               'c4': result.c4,
+                               'correct': result.correct,
+                               'create_time': result.create_time,
+                               'difficult': result.difficult,
+                               'hint': result.hint,
+                               'question': result.question,
+                               'tags': result.tags,
+                               'time_limit': result.time_limit,
+                               'type': result.type,
+                               'uuid': result.uuid
+                           } for result in list_tag
+                       ]
+                   }, 200
         else:
             return {
-                'message': 'no questions found in database'
-            }, 404
+                       'message': 'no questions found in database'
+                   }, 404
