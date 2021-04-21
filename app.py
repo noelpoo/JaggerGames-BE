@@ -14,6 +14,7 @@ from models.tag import TagsResource
 from models.question import QuestionResource, AllQuestionsResource
 from models.csv_parser import CsvParserResource
 from models.answer import AnswerResource, AllAnswersResource
+from models.session import SessionResource
 
 # FIREBASE DB
 if not firebase_admin._apps:
@@ -46,6 +47,9 @@ api.add_resource(AnswerResource, '{}/answer'.format(API_PATH))
 api.add_resource(AllAnswersResource, '{}/answers'.format(API_PATH))
 # ENDPOINT FOR TAGS
 api.add_resource(TagsResource, '{}/tags'.format(API_PATH))
+# ENDPOINT FOR SESSIONS API
+api.add_resource(SessionResource, '{}/session'.format(API_PATH))
+
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
