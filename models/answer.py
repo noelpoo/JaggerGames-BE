@@ -187,7 +187,7 @@ class AnswerResource(Resource):
         else:
             return {
                        'message': 'answer with id {} cannot be found'.format(answer_id)
-                   }, 403
+                   }, 404
 
     @cross_origin(origin='*', headers=['Content-Type', 'Authorization'])
     def delete(self):
@@ -203,7 +203,7 @@ class AnswerResource(Resource):
         else:
             return {
                        'message': 'answer with id {} cannot be found'.format(answer_id)
-                   }, 403
+                   }, 404
 
 
 class AllAnswersResource(Resource):
@@ -215,7 +215,6 @@ class AllAnswersResource(Resource):
         parser.add_argument('device_id', type=str, required=False)
         session_id = parser.parse_args().get('session_id')
         device_id = parser.parse_args().get('device_id')
-        return_list = None
 
         if not session_id and not device_id:
             return_list = Answer.find_all_answers()
@@ -247,4 +246,4 @@ class AllAnswersResource(Resource):
         else:
             return {
                 'message': 'no answers found'
-            }, 403
+            }, 404
