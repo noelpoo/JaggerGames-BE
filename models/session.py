@@ -1,17 +1,8 @@
-import firebase_admin
 from flask_restful import Resource, reqparse
 from flask_cors import cross_origin
-from firebase_admin import credentials
-from firebase_admin import firestore
 
-from config import *
+
 from models.answer import Answer
-
-if not firebase_admin._apps:
-    cred = credentials.Certificate(FIREBASE_KEY_PATH)
-    default_app = firebase_admin.initialize_app(cred)
-
-db = firestore.client()
 
 
 class SessionResource(Resource):
