@@ -1,6 +1,5 @@
 import uuid
 import pandas as pd
-import time
 import math
 from flask_restful import Resource
 from flask_cors import cross_origin
@@ -10,21 +9,19 @@ from utils import create_time_limit
 
 
 class QuestionCSV:
-    def __init__(self, c1, c2, c3, c4, correct, create_time,
-                 difficult, hint, question, tags, time_limit, type, uuid):
+    def __init__(self, c1, c2, c3, c4, correct,
+                 difficult, hint, question, tags, time_limit, _type):
         self.c1 = c1
         self.c2 = c2
         self.c3 = c3
         self.c4 = c4
         self.correct = correct
-        self.create_time = create_time
         self.difficult = difficult
         self.hint = hint
         self.question = question
         self.tags = tags
         self.time_limit = time_limit
-        self.type = type
-        self.uuid = uuid
+        self.type = _type
 
 
 class CsvParserResource(Resource):
@@ -53,21 +50,8 @@ class CsvParserResource(Resource):
                                                                                                qn_type=qn_type,
                                                                                                qn=_question)
 
-                obj = QuestionCSV(
-                    choice_1,
-                    choice_2,
-                    choice_3,
-                    choice_4,
-                    correct,
-                    time.time(),
-                    difficulty,
-                    hint,
-                    _question,
-                    [],
-                    time_limit,
-                    qn_type,
-                    _uuid
-                )
+                obj = QuestionCSV(choice_1, choice_2, choice_3, choice_4,
+                                  correct, difficulty, hint, _question, [], time_limit, qn_type)
 
                 obj_list.append(obj)
             for obj in obj_list:
@@ -77,14 +61,12 @@ class CsvParserResource(Resource):
                     'c3': obj.c3,
                     'c4': obj.c4,
                     'correct': obj.correct,
-                    'create_time': obj.create_time,
                     'difficult': obj.difficult,
                     'hint': obj.hint,
                     'question': obj.question,
                     'tags': obj.tags,
-                    'time_limit': obj.time_limit,
+                    'time_limit': round(obj.time_limit),
                     'type': obj.type,
-                    'uuid': obj.uuid
                 }
                 resp_list.append(json_obj)
 

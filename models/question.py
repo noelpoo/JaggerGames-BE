@@ -9,6 +9,7 @@ from firebase_admin import firestore
 
 from config import *
 from utils import split_multiple_params_into_list, check_list_contains_list
+from models.tag import Tag
 
 if not firebase_admin._apps:
     cred = credentials.Certificate(FIREBASE_KEY_PATH)
@@ -137,37 +138,43 @@ class QuestionResource(Resource):
         else:
             return {
                        'message': 'question with uuid {} cannot be found'.format(_uuid)
-                   }, 403
+                   }, 404
 
-    # TODO - ADD TAGS VALIDATION
     @cross_origin(origin='*', headers=['Content-Type', 'Authorization'])
     def post(self):
         data = request.get_json(force=True)
-        question = Question(
-            data['c1'],
-            data['c2'],
-            data['c3'],
-            data['c4'],
-            data['correct'],
-            int(time.time()),
-            data['difficult'],
-            data['hint'],
-            data['question'],
-            data['tags'],
-            data['time_limit'],
-            data['type'],
-            str(uuid.uuid4())
-        )
+        tag_errors = Tag.validate_request_tags_exists(data['tags'])
+        if not tag_errors:
+            question = Question(
+                data['c1'],
+                data['c2'],
+                data['c3'],
+                data['c4'],
+                data['correct'],
+                int(time.time()),
+                data['difficult'],
+                data['hint'],
+                data['question'],
+                data['tags'],
+                data['time_limit'],
+                data['type'],
+                str(uuid.uuid4())
+            )
 
-        result = Question.add_question_to_db(question)
-        if result:
-            return {
-                       'question': result
-                   }, 201
+            result = Question.add_question_to_db(question)
+            if result:
+                return {
+                           'question': result
+                       }, 201
+            else:
+                return {
+                           'message': 'malformed body'
+                       }, 400
         else:
             return {
-                       'message': 'malformed body'
-                   }, 300
+                'message': 'some tags do not exist',
+                'wrong_tags': tag_errors
+            }, 400
 
     @cross_origin(origin='*', headers=['Content-Type', 'Authorization'])
     def delete(self):
@@ -183,7 +190,7 @@ class QuestionResource(Resource):
         else:
             return {
                        'message': 'question with uuid {} not found'.format(_uuid)
-                   }, 300
+                   }, 404
 
 
 class AllQuestionsResource(Resource):

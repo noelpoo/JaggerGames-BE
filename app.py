@@ -1,7 +1,4 @@
 import os
-import firebase_admin
-from firebase_admin import credentials
-from firebase_admin import firestore
 from flask import Flask
 from flask_restful import Api
 from flask_cors import CORS
@@ -16,12 +13,6 @@ from models.csv_parser import CsvParserResource
 from models.answer import AnswerResource, AllAnswersResource
 from models.session import SessionResource
 
-# FIREBASE DB
-if not firebase_admin._apps:
-    cred = credentials.Certificate(FIREBASE_KEY_PATH)
-    default_app = firebase_admin.initialize_app(cred)
-
-db = firestore.client()
 
 app = Flask(__name__)
 app.secret_key = APP_SECRET_KEY
@@ -34,7 +25,6 @@ jwt = JWTManager(app)
 # TODO - CREATE FETCHING BY COUNT
 # TODO - "correct" field to accept string or array (for MMCQ)
 # TODO - more enum for MMCQ question type
-# TODO - create job to refresh tag_list in-memory
 
 
 # ENDPOINTS FOR QUESTIONS
