@@ -194,8 +194,8 @@ class AnswerResource(Resource):
         parser = reqparse.RequestParser()
         parser.add_argument('answer_id', type=str, required=True)
         answer_id = parser.parse_args().get('answer_id')
-        result = Answer.find_by_answer_id(answer_id)
-        if result:
+
+        if Answer.find_by_answer_id(answer_id):
             Answer.delete_by_answer_id(answer_id)
             return {
                        'message': 'successfully deleted answer with id {}'.format(answer_id)

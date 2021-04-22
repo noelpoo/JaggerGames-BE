@@ -1,7 +1,6 @@
 from flask_restful import Resource, reqparse
 from flask_cors import cross_origin
 
-
 from models.answer import Answer
 
 
@@ -16,15 +15,13 @@ class SessionResource(Resource):
 
         results = Answer.find_by_device_id(device_id)
         if results:
-            session_id_list = list(set([result.session_id for result in results]))
-
             return_list = [
                 {
                     'session_id': session,
                     'answer_ids': [
                         i.answer_id for i in Answer.find_by_session_and_device_id(session, device_id)
                     ]
-                } for session in session_id_list
+                } for session in list(set([result.session_id for result in results]))
             ]
 
             if return_list:
