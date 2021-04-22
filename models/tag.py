@@ -81,6 +81,10 @@ class Tag:
             tag_obj_list = None
         return tag_obj_list
 
+    @classmethod
+    def validate_request_tags_exists(cls, request_tags):
+        return [i for i in request_tags if i not in [tag.tag for tag in cls.find_all_tags()]]
+
     @staticmethod
     def add_tag_to_db(obj):
         try:
@@ -123,7 +127,7 @@ class TagsResource(Resource):
         else:
             return {
                        'message': 'tag already exists'
-                   }, 403
+                   }, 400
 
     @cross_origin(origin='*', headers=['Content-Type', 'Authorization'])
     def get(self):
@@ -148,7 +152,7 @@ class TagsResource(Resource):
             else:
                 return {
                            'message': 'tag with uuid {} not found'.format(_uuid)
-                       }, 403
+                       }, 404
 
         elif tag:
             result = Tag.find_by_tag(tag)
@@ -162,7 +166,7 @@ class TagsResource(Resource):
             else:
                 return {
                            'message': 'tag with tag {} not found'.format(tag)
-                       }, 403
+                       }, 404
 
         elif localisation:
             result = Tag.find_by_localisation(localisation)
@@ -176,7 +180,7 @@ class TagsResource(Resource):
             else:
                 return {
                            'message': 'tag with localisation {} not found'.format(localisation)
-                       }, 403
+                       }, 404
 
         else:
             tag_list = []
@@ -194,7 +198,7 @@ class TagsResource(Resource):
             else:
                 return {
                            'message': 'no tags were found'
-                       }, 403
+                       }, 404
 
     @cross_origin(origin='*', headers=['Content-Type', 'Authorization'])
     def delete(self):
@@ -212,11 +216,11 @@ class TagsResource(Resource):
                 Tag.delete_tag_from_db_using_uuid(_uuid)
                 return {
                            'message': 'successfully deleted tag with uuid {}'.format(_uuid)
-                       }, 303
+                       }, 200
             else:
                 return {
                            'message': 'tag with uuid {} does not exist'.format(_uuid)
-                       }, 400
+                       }, 404
         elif tag:
             result = Tag.find_by_tag(tag)
             if result:
@@ -224,11 +228,11 @@ class TagsResource(Resource):
                 Tag.delete_tag_from_db_using_uuid(tgt_uuid)
                 return {
                            'message': 'successfully deleted tag'
-                       }, 303
+                       }, 200
             else:
                 return {
                            'message': 'tag with tag {} does not exist'.format(tag)
-                       }, 400
+                       }, 404
 
         elif localisation:
             result = Tag.find_by_localisation(localisation)
@@ -237,8 +241,8 @@ class TagsResource(Resource):
                 Tag.delete_tag_from_db_using_uuid(tgt_uuid)
                 return {
                            'message': 'successfully deleted tag'
-                       }, 303
+                       }, 200
             else:
                 return {
                            'message': 'tag with tag {} does not exist'.format(localisation)
-                       }, 400
+                       }, 404

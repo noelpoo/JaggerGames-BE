@@ -37,4 +37,4 @@ class SessionResource(Resource):
         else:
             return {
                 'message': 'no sessions found for device_id {}'.format(device_id)
-            }
+            }, 404

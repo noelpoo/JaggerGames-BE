@@ -164,7 +164,7 @@ class AnswerResource(Resource):
         else:
             return {
                        'message': 'failed to add answer to db'
-                   }, 300
+                   }, 417
 
     @cross_origin(origin='*', headers=['Content-Type', 'Authorization'])
     def get(self):
