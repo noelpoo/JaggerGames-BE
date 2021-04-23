@@ -24,62 +24,63 @@ class Tag:
 
     @classmethod
     def find_by_tag(cls, tag):
-        return_list = []
         doc_ref = db.collection(TAGS_FB_DB).where('tag', '==', tag).stream()
-        for docs in doc_ref:
-            doc = docs.to_dict()
-            tag_obj = cls(
-                doc['uuid'],
-                doc['tag'],
-                doc['localisation']
-            )
-            return_list.append(tag_obj)
-        return return_list
-
-    @classmethod
-    def find_by_uuid(cls, _uuid):
-        return_list = []
-        doc_ref = db.collection(TAGS_FB_DB).where('uuid', '==', _uuid).stream()
-        for docs in doc_ref:
-            doc = docs.to_dict()
-            tag_obj = cls(
-                doc['uuid'],
-                doc['tag'],
-                doc['localisation']
-            )
-            return_list.append(tag_obj)
-        return return_list
-
-    @classmethod
-    def find_by_localisation(cls, localisation):
-        return_list = []
-        doc_ref = db.collection(TAGS_FB_DB).where('localisation', '==', localisation).stream()
-        for docs in doc_ref:
-            doc = docs.to_dict()
-            tag_obj = cls(
-                doc['uuid'],
-                doc['tag'],
-                doc['localisation']
-            )
-            return_list.append(tag_obj)
-        return return_list
-
-    @classmethod
-    def find_all_tags(cls):
-        tag_obj_list = []
-        doc_ref = db.collection(TAGS_FB_DB).stream()
-        if doc_ref:
-            for _doc in doc_ref:
-                doc = _doc.to_dict()
-                tag_obj = cls(
+        docs = [doc.to_dict() for doc in doc_ref]
+        if docs:
+            return [
+                cls(
                     doc['uuid'],
                     doc['tag'],
                     doc['localisation']
-                )
-                tag_obj_list.append(tag_obj)
+                ) for doc in docs
+            ]
         else:
-            tag_obj_list = None
-        return tag_obj_list
+            return None
+
+    @classmethod
+    def find_by_uuid(cls, _uuid):
+        doc_ref = db.collection(TAGS_FB_DB).where('uuid', '==', _uuid).stream()
+        docs = [doc.to_dict() for doc in doc_ref]
+        if docs:
+            return [
+                cls(
+                    doc['uuid'],
+                    doc['tag'],
+                    doc['localisation']
+                ) for doc in docs
+            ]
+        else:
+            return None
+
+    @classmethod
+    def find_by_localisation(cls, localisation):
+        doc_ref = db.collection(TAGS_FB_DB).where('localisation', '==', localisation).stream()
+        docs = [doc.to_dict() for doc in doc_ref]
+        if docs:
+            return [
+                cls(
+                    doc['uuid'],
+                    doc['tag'],
+                    doc['localisation']
+                ) for doc in docs
+            ]
+        else:
+            return None
+
+    @classmethod
+    def find_all_tags(cls):
+        doc_ref = db.collection(TAGS_FB_DB).stream()
+        docs = [doc.to_dict() for doc in doc_ref]
+        if docs:
+            return [
+                cls(
+                    doc['uuid'],
+                    doc['tag'],
+                    doc['localisation']
+                ) for doc in docs
+            ]
+        else:
+            return None
 
     @classmethod
     def validate_request_tags_exists(cls, request_tags):
