@@ -184,17 +184,16 @@ class TagsResource(Resource):
                        }, 404
 
         else:
-            tag_list = []
             results = Tag.find_all_tags()
             if results:
-                for result in results:
-                    tag_list.append({
-                        'tag': result.tag,
-                        'uuid': result.uuid,
-                        'localisation': result.localisation
-                    })
                 return {
-                           'tags': tag_list
+                           'tags': [
+                               {
+                                   'tag': result.tag,
+                                   'uuid': result.uuid,
+                                   'localisation': result.localisation
+                               } for result in results
+                           ]
                        }, 200
             else:
                 return {
